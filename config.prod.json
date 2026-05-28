@@ -1,0 +1,19 @@
+{
+  "mode": "production",
+  "can": {
+    "interface": "COM4",
+    "plugin": "slcan",
+    "mapping": {
+      "0x1CFDD600": "inclinacion",
+      "0x1CFDD601": "distancia_brazo",
+      "0x1CFDD602": "temp_motor",
+      "0x1CFDD603": "presion_hidraulica"
+    }
+  },
+  "alarms": {
+    "inclinacion_max": 25.0,
+    "distancia_brazo_min": 0.8,
+    "temp_motor_max": 95.0,
+    "presion_hidraulica_max": 210.0
+  }
+}
