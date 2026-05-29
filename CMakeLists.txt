@@ -29,6 +29,7 @@ qt_add_qml_module(appsample01
         QML_FILES AlertPanel.qml
         QML_FILES config.json config.prod.json config.test.json
         SOURCES sqlservice.h sqlservice.cpp
+        RESOURCES README.md
     # Nota: config.json fue eliminado de aquí para evitar la advertencia de Qt6
 )
 
