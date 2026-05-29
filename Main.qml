@@ -1,7 +1,15 @@
 import QtQuick
 import QtQuick.Controls
-import QtQuick.Layouts // <-- Requerido para StackLayout
+import QtQuick.Layouts
 
+/**
+ * @component Main
+ * @brief Ventana raíz y orquestadora principal de la interfaz HMI.
+ *
+ * Define las dimensiones base de la consola de operación, administra la barra
+ * de pestañas de navegación superior y distribuye espacialmente los submódulos
+ * de telemetría, gráficos e historial persistente recopilados desde C++.
+ */
 ApplicationWindow {
     width: 900
     height: 650
@@ -9,7 +17,10 @@ ApplicationWindow {
     title: "Consola HMI de Excavadora Industrial"
     color: "#1E1E1E"
 
-    // --- BARRA DE PESTAÑAS SUPERIOR ---
+    /**
+     * @brief Control de pestañas principal.
+     * Conmuta el índice activo del StackLayout para segmentar las vistas de planta.
+     */
     TabBar {
         id: hmiTabBar
         width: parent.width
@@ -17,6 +28,7 @@ ApplicationWindow {
 
         background: Rectangle { color: "#2D2D2D" }
 
+        // Pestaña orientada al control físico y visualización de la excavadora
         TabButton {
             text: "⚙️ OPERACIÓN"
             contentItem: Text {
@@ -27,6 +39,8 @@ ApplicationWindow {
                 verticalAlignment: Text.AlignVCenter
             }
         }
+
+        // Pestaña orientada a la auditoría estática de fallas guardadas en SQLite
         TabButton {
             text: "📋 HISTORIAL DE ALARMAS"
             contentItem: Text {
@@ -39,20 +53,21 @@ ApplicationWindow {
         }
     }
 
-    // --- CONTENEDOR DE PÁGINAS DINÁMICAS ---
+    /**
+     * @brief Gestor asíncrono elástico de pantallas modulares.
+     * Sincroniza su propiedad 'currentIndex' de manera reactiva con el TabBar superior.
+     */
     StackLayout {
         width: parent.width
         anchors.top: hmiTabBar.bottom
         anchors.bottom: parent.bottom
         currentIndex: hmiTabBar.currentIndex
 
-        // ==========================================
-        // PÁGINA 1: MONITOR DE EXCAVADORA Y ALERTAS
-        // ==========================================
+        // PÁGINA 1: ENTORNO GRÁFICO DE OPERACIÓN EN VIVO
         Item {
             id: operationPage
 
-            // Inserción modular del renderizador 2D de la excavadora
+            // Inserción modular del renderizador geométrico articulado de la máquina
             ExcavatorVisualizer {
                 id: excavatorGraphic
                 anchors.left: parent.left
@@ -60,7 +75,7 @@ ApplicationWindow {
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            // Inserción modular del panel lateral de alertas críticas
+            // Inserción modular del panel elástico de alertas rojas/naranjas de seguridad
             AlertPanel {
                 id: alertSystem
                 anchors.top: parent.top
@@ -68,7 +83,7 @@ ApplicationWindow {
                 anchors.margins: 20
             }
 
-            // Inserción modular de los textos de telemetría digital
+            // Inserción modular de los bloques numéricos adaptativos (Data-Driven)
             TelemetryPanel {
                 id: realTimeData
                 anchors.bottom: parent.bottom
@@ -77,9 +92,7 @@ ApplicationWindow {
             }
         }
 
-        // ==========================================
-        // PÁGINA 2: AUDITORÍA
-        // ==========================================
+        // PÁGINA 2: CUADRÍCULA DE AUDITORÍA HISTÓRICA PERMANENTE
         Item {
             id: logHistoryPage
 
@@ -90,7 +103,7 @@ ApplicationWindow {
                 border.color: "#444444"
                 radius: 6
 
-                // Encabezado
+                // ENCABEZADO ESTÁTICO DE LA TABLA
                 Rectangle {
                     id: tableHeader
                     height: 40
@@ -105,20 +118,14 @@ ApplicationWindow {
                         anchors.leftMargin: 15
                         spacing: 10
 
-                        Text {
-                            text: "Fecha / Hora"
-                            color: "#AAAAAA"
-                            width: 180
-                            font.bold: true
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
+                        Text { text: "Fecha / Hora"; color: "#AAAAAA"; width: 180; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         Text { text: "Tipo de Alarma"; color: "#AAAAAA"; width: 180; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         Text { text: "Estado"; color: "#AAAAAA"; width: 130; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                         Text { text: "Detalles Técnicos"; color: "#AAAAAA"; width: 250; font.bold: true; anchors.verticalCenter: parent.verticalCenter }
                     }
                 }
 
-                // Lista
+                // LISTA DINÁMICA SCROLLABLE DEL HISTORIAL SQLITE
                 ListView {
                     anchors.top: tableHeader.bottom
                     anchors.bottom: parent.bottom
@@ -126,48 +133,60 @@ ApplicationWindow {
                     anchors.right: parent.right
                     anchors.margins: 5
                     clip: true
+
+                    // Vinculación directa con el QVariantList expuesto desde C++
                     model: excavatorCtrl.alarmHistory
 
+                    // Delegado visual encargado de pintar cada fila indexada
                     delegate: Rectangle {
                         width: parent.width
                         height: 38
-                        color: index % 2 === 0 ? "#252525" : "#2D2D2D"
+                        color: index % 2 === 0 ? "#252525" : "#2D2D2D" // Color de fila intercalado para legibilidad
 
                         Row {
                             anchors.fill: parent
                             anchors.leftMargin: 10
                             spacing: 10
 
+                            // Extraer propiedades del mapa de C++ mapeándolas de forma elástica en Javascript
                             Text { text: modelData.timestamp || ""; color: "white"; width: 180; anchors.verticalCenter: parent.verticalCenter }
                             Text { text: modelData.type || ""; color: "white"; width: 180; anchors.verticalCenter: parent.verticalCenter }
 
+                            // Conmutador cromático industrial basado en la severidad del estado de la alarma
                             Text {
                                 text: modelData.state || ""
                                 width: 130
                                 font.bold: true
                                 anchors.verticalCenter: parent.verticalCenter
-                                color: modelData.state === "ACTIVADA" ? "#FF3B30" :
-                                       (modelData.state === "RECONOCIDA" ? "#5856D6" : "#34C759")
+                                color: modelData.state === "ACTIVADA" ? "#FF3B30" : // Rojo peligro
+                                       (modelData.state === "RECONOCIDA" ? "#5856D6" : "#34C759") // Púrpura ACK o Verde Seguro
                             }
 
                             Text { text: modelData.details || ""; color: "#D1D1D6"; width: 250; anchors.verticalCenter: parent.verticalCenter }
                         }
                     }
+                    // Barra de desplazamiento vertical nativa táctil/mouse
                     ScrollBar.vertical: ScrollBar { active: true }
                 }
             }
         }
     }
-    // --- CAPA DE BLOQUEO POR PÉRDIDA DE COMUNICACIÓN (WATCHDOG) ---
+
+    /**
+     * @brief Bloqueo de seguridad tras pérdida de ráfagas de telemetría.
+     *
+     * Se activa por encima de cualquier otra pestaña (z: 999) interceptando
+     * eventos físicos del operador para impedir mandos inválidos si la máquina
+     * pierde comunicación por cable CAN o socket de red local UDP.
+     */
     Rectangle {
         id: commLossOverlay
         anchors.fill: parent
-        // Se vuelve visible y bloquea los clics si se activa la falla en C++
-        visible: excavatorCtrl.commLoss
-        color: "#CC000000" // Fondo negro translúcido (Opacidad del 80%)
-        z: 999             // Asegura que se dibuje por encima de las pestañas y botones
+        visible: excavatorCtrl.commLoss // Enlazado a la propiedad 'm_commLoss' administrada por el QTimer de C++
+        color: "#CC000000" // Opacidad oscura al 80% para enmascarar la HMI de fondo
+        z: 999             // Coordenada z máxima: Bloquea accesos al TabBar superior
 
-        // Intercepta todos los eventos de mouse para que no se pueda presionar nada de fondo
+        // Interceptor de hardware: Secuestra clics y toques para blindar los botones de fondo
         MouseArea {
             anchors.fill: parent
             preventStealing: true
@@ -177,13 +196,12 @@ ApplicationWindow {
             anchors.centerIn: parent
             spacing: 20
 
-            // Icono parpadeante de advertencia
+            // Icono de advertencia volumétrico animado con parpadeo infinito
             Text {
                 text: "⚠️"
                 font.pointSize: 60
                 anchors.horizontalCenter: parent.horizontalCenter
 
-                // Animación simple de parpadeo continuo
                 SequentialAnimation on opacity {
                     loops: Animation.Infinite
                     NumberAnimation { from: 1.0; to: 0.2; duration: 500 }

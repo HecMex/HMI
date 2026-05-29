@@ -22,24 +22,22 @@ int main(int argc, char *argv[])
     SQLService* sqlService = new SQLService(&app);
     sqlService->initialize();
 
-    ExcavatorDataSource* dataSource = nullptr;
-
     // Conmutar el comportamiento de la HMI según el JSON
+    ExcavatorDataSource* dataSource = nullptr;
     if (ConfigManager::mode == "production") {
         dataSource = new CanBusDataSource();
     } else {
         dataSource = new UdpDataSource();
     }
-
     dataSource->initialize();
 
+    // controlador
     ExcavatorController excavatorController(dataSource, sqlService);
-
     dataSource->setParent(&excavatorController);
 
+    // engine QML
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("excavatorCtrl", &excavatorController);
-
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
                      &app, []() { QCoreApplication::exit(-1); }, Qt::QueuedConnection);
 

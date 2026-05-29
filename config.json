@@ -8,7 +8,8 @@
     "inclinacion_max": 25.0,
     "distancia_brazo_min": 0.8,
     "temp_motor_max": 95.0,
-    "presion_hidraulica_max": 210.0
+    "presion_hidraulica_max": 210.0,
+    "otro_sensor_max": 100
   }
 }
 

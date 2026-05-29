@@ -1,32 +1,51 @@
 import QtQuick
 import QtQuick.Controls
 
+/**
+ * @component AlertPanel
+ * @brief Panel de control lateral derecho autoadaptable para alarmas críticas.
+ *
+ * Monitorea el mapa de sensores y consulta la función puente de C++ para evaluar límites.
+ * Si un sensor entra en estado de peligro, despliega dinámicamente una tarjeta de
+ * emergencia y habilita botones interactivos de paro bidireccional.
+ */
 Column {
     id: root
     spacing: 15
-    width: 260 // Mantiene el ancho estático del panel lateral derecho
+    width: 260
 
     Repeater {
-        // Genera un bloque visual por cada sensor que exista en el mapa de C++
+        // Evalúa cíclicamente cada sensor registrado en el sistema
         model: Object.keys(excavatorCtrl.sensors)
 
         delegate: Item {
             id: alarmItem
-            width: parent ? parent.width : 260
+            width: root.width // Mapea el ancho de la columna raíz
 
-            // Extracción del valor actual desde el mapa dinámico
+            // -------------------------------------------------------------
+            // PROPIEDADES DE ANÁLISIS DE CRITICIDAD DE LA ALARMA
+            // -------------------------------------------------------------
+            /** @property double currentVal Almacena la lectura instantánea del sensor actual */
             property double currentVal: excavatorCtrl.sensors[modelData]
 
-            // Consulta de límites usando la función puente del controlador
+            /** @property double maxLimit Recupera el umbral máximo configurado en el JSON */
             property double maxLimit: excavatorCtrl.getDynamicLimit(modelData + "_max")
+
+            /** @property double minLimit Recupera el umbral mínimo configurado en el JSON */
             property double minLimit: excavatorCtrl.getDynamicLimit(modelData + "_min")
 
-            // Evaluación de criticidad
+            /** @property bool isCriticalMax Determina si el valor superó el umbral superior */
             property bool isCriticalMax: maxLimit !== -1.0 && currentVal >= maxLimit
+
+            /** @property bool isCriticalMin Determina si el valor cayó por debajo del umbral inferior */
             property bool isCriticalMin: minLimit !== -1.0 && currentVal <= minLimit
+
+            /** @property bool isAlertActive Bandera global que activa visualmente la tarjeta */
             property bool isAlertActive: isCriticalMax || isCriticalMin
 
-            // Textos adaptativos según el ID del sensor
+            // -------------------------------------------------------------
+            // PROPIEDADES ADAPTATIVAS DE TEXTOS Y COMANDOS
+            // -------------------------------------------------------------
             property string friendlyName: modelData === "inclinacion" ? "INCLINACIÓN" :
                                           modelData === "distancia_brazo" ? "DISTANCIA BRAZO" :
                                           modelData === "temp_motor" ? "TEMP. MOTOR" : modelData.toUpperCase().replace("_", " ")
@@ -34,17 +53,18 @@ Column {
             property string actionText: modelData === "inclinacion" ? "APAGAR EXCAVADORA" :
                                         modelData === "distancia_brazo" ? "BLOQUEAR MOV. PALA" : "DETENER COMPONENTE"
 
-            // La tarjeta solo es visible y ocupa espacio si la alarma está activa
+            // La tarjeta se colapsa (height: 0) e invisibiliza si el proceso está en rangos seguros
             visible: isAlertActive
             height: visible ? 130 : 0
 
+            // Comportamiento de transiciones fluidas de tamaño y opacidad
             Behavior on height { NumberAnimation { duration: 200 } }
             opacity: visible ? 1.0 : 0.0
             Behavior on opacity { NumberAnimation { duration: 150 } }
 
             Rectangle {
                 anchors.fill: parent
-                // Naranja para el brazo (Riesgo de choque local), Rojo para inclinación/motor (Riesgo total de volcadura)
+                // Código visual de seguridad: Naranja para advertencia de choque, Rojo para paros totales de motor
                 color: modelData === "distancia_brazo" ? "#FF9500" : "#FF3B30"
                 radius: 8
                 clip: true
@@ -69,6 +89,7 @@ Column {
                         enabled: alarmItem.isAlertActive
 
                         onClicked: {
+                            // Enrutar la pulsación del operador hacia los comandos binarios de C++
                             if (modelData === "inclinacion") {
                                 excavatorCtrl.requestEngineShutdown();
                             } else if (modelData === "distancia_brazo") {

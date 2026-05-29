@@ -2,7 +2,7 @@ import socket
 import json
 import time
 import math
-import threading # <-- REQUERIDO: Para escuchar a Qt en segundo plano
+import threading
 
 # CONFIGURACIÓN DE RED (Coincide con la sección "udp" de tu config.json)
 UDP_IP = "127.0.0.1"
@@ -19,9 +19,7 @@ sock_recv.settimeout(0.1) # Evita bloquear por completo el script al cerrar
 machine_running = True
 shovel_moving = True
 
-# =====================================================================
 # HILO DE ESCUCHA: PROCESAMIENTO DE COMANDOS DE LA HMI QT
-# =====================================================================
 def listen_hmi_commands():
     global machine_running, shovel_moving
     while machine_running:
@@ -52,9 +50,7 @@ try:
     while machine_running:
         elapsed = time.time() - start_time
 
-        # -------------------------------------------------------------
-        # 1. CÁLCULO DE LA FÍSICA Y SIMULACIÓN DE SENSORES
-        # -------------------------------------------------------------
+        # CÁLCULO DE LA FÍSICA Y SIMULACIÓN DE SENSORES
         # Sensor A: Inclinación del Chasis
         inclinacion = 28 * math.sin(elapsed * 0.3)
         
@@ -70,20 +66,20 @@ try:
         
         # Sensor D: Presión del Sistema Hidráulico en PSI
         presion_hidraulica = 190.0 + 25.0 * math.cos(elapsed * 0.2)
+        
+        # Sensor E: Otro sensor
+        otro_sensor = 42.0 + 10.0 * math.sin(elapsed * 0.4)
 
-        # -------------------------------------------------------------
-        # 2. EMPAQUETADO INDIVIDUAL EN FORMATO JSON INDUSTRIAL
-        # -------------------------------------------------------------
+        # EMPAQUETADO INDIVIDUAL EN FORMATO JSON INDUSTRIAL
         rafaga_sensores = [
             {"id": "inclinacion", "val": round(inclinacion, 2)},
             {"id": "distancia_brazo", "val": round(distancia_brazo, 2)},
             {"id": "temp_motor", "val": round(temp_motor, 2)},
-            {"id": "presion_hidraulica", "val": round(presion_hidraulica, 2)}
+            {"id": "presion_hidraulica", "val": round(presion_hidraulica, 2)},
+            {"id": "otro_sensor", "val": round(otro_sensor, 2)}
         ]
 
-        # -------------------------------------------------------------
-        # 3. ENVÍO DE DATOS POR LA RED
-        # -------------------------------------------------------------
+        # ENVÍO DE DATOS POR LA RED
         for sensor_data in rafaga_sensores:
             json_string = json.dumps(sensor_data)
             sock_send.sendto(json_string.encode('utf-8'), (UDP_IP, SEND_PORT))
